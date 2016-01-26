@@ -28,15 +28,34 @@ struct orientation {
 // Motor 3 = center, horizontal, right;
 // Motor 4 = center, horizontal, left;
 // Motor 5 = rear, vertical;
-#define M_FRONT_LEFT motor_duty_cycle[0]
+/*#define M_FRONT_LEFT motor_duty_cycle[0]
 #define M_FRONT_RIGHT motor_duty_cycle[1]
 #define M_LEFT motor_duty_cycle[2]
 #define M_RIGHT motor_duty_cycle[3]
-#define M_REAR motor_duty_cycle[4]
+#define M_REAR motor_duty_cycle[4]*/
+
+#define M_FRONT_LEFT motor_duty_cycle[0]
+#define M_FRONT_RIGHT motor_duty_cycle[1]
+#define M_BACK_LEFT motor_duty_cycle[2]
+#define M_BACK_RIGHT motor_duty_cycle[3]
+#define MP_FRONT_LEFT motor_duty_cycle[4]
+#define MP_FRONT_RIGHT motor_duty_cycle[5]
+#define MP_BACK_LEFT motor_duty_cycle[6]
+#define MP_BACK_RIGHT motor_duty_cycle[7]
 
 void set_target_speed(int speed);
 void set_target_heading(int heading);
 void set_target_depth(int depth);
+
+// the following function calculates the pwm needed for 4 stabilizing motors. 
+// It ensures motors are balanced and no motor exceeds 0.8*FULL_PWM by reducing 
+// the force if any motor pwm does exceed the limit.
+// It also ensures no more than 4 motors run simultaneously
+#define MAX_FORCE_BALANCING_LOOPS 10
+bool stabilizing_motors_force_to_pwm (
+        double f_0, double f_1, double f_2, double f_3,
+        double *m_0, double *m_1, double *m_2, double *m_3
+)
 
 void get_orientation(struct t_accel_data *accel_data, struct orientation *orientation);
 
