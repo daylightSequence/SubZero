@@ -156,8 +156,8 @@ double motor_force_to_pwm (double force) {
 // the force if any motor pwm does exceed the limit.
 #define MAX_FORCE_BALANCING_LOOPS 10
 bool stabilizing_motors_force_to_pwm (
-        double f_1, double f_2, double f_3,
-        double *m_1, double *m_2, double *m_3
+        double f_0, double f_1, double f_2, double f_3,
+        double *m_0, double *m_1, double *m_2, double *m_3
 )
 {
     unsigned loops;
@@ -165,20 +165,22 @@ bool stabilizing_motors_force_to_pwm (
 
     for (loops = 0; loops < MAX_FORCE_BALANCING_LOOPS; loops++) {
         // calculate the pwms
+        *m_0 = motor_force_to_pwm(f_0);
         *m_1 = motor_force_to_pwm(f_1);
         *m_2 = motor_force_to_pwm(f_2);
-        if (m_3) {
-            *m_3 = motor_force_to_pwm(f_3);
-        }
+        *m_3 = motor_force_to_pwm(f_3);
+        
 
         double pwm_limit = MAX_PWM;
 
         // if any pwm is out of bound
-        if (ABS(*m_1) > pwm_limit ||
+        if (ABS(*m_0) > pwm_limit ||
+            ABS(*m_1) > pwm_limit ||
             ABS(*m_2) > pwm_limit ||
-            (m_3 && ABS(*m_3) > pwm_limit))
+            ABS(*m_3) > pwm_limit)
         {
             // reduce force
+            f_0 *= FORCE_REDUCTION_FACTOR;
             f_1 *= FORCE_REDUCTION_FACTOR;
             f_2 *= FORCE_REDUCTION_FACTOR;
             f_3 *= FORCE_REDUCTION_FACTOR;
@@ -229,14 +231,16 @@ void calculate_pid()
    /** orientation stability
     *  If the COM is off center we would have some sort of factors here instead of 0.5
     */
-
-   double m_front_left, m_front_right, m_rear, m_left, m_right;
+   //subgroup A: 						
+   double m_front_left, m_front_right, m_back_left, m_back_right;
+   //subgroup B:
+   double mp_front_left, mp_front_right, mp_back_left, mp_back_right;
    
    stabilizing_motors_force_to_pwm ( // this calculates the pwms for yaw motors
 				    // These are actually switched for SubZero
-      0.5*Yaw_Force_Needed - Forward_Force_Needed, // m_left
-      -0.5*Yaw_Force_Needed - Forward_Force_Needed, // m_right
-      0, // unused
+      0.5*Yaw_Force_Needed - Forward_Force_Needed, // m_front_left //we might change hard-coded 0.5 ratio later
+      -0.5*Yaw_Force_Needed - Forward_Force_Needed, // m_front_right
+      0, // 
       &m_left,
       &m_right,
       NULL
@@ -263,9 +267,13 @@ void calculate_pid()
 
    M_FRONT_LEFT = (int)m_front_left;
    M_FRONT_RIGHT = (int)m_front_right;
-   M_LEFT = (int)m_left;
-   M_RIGHT = (int)m_right;
-   M_REAR = (int)m_rear;
+   M_BACK_LEFT = (int)m_back_left;
+   M_BACK_RIGHT = (int)m_back_right;
+   MP_FRONT_LEFT = (int)mp_front_left;
+   MP_FRONT_RIGHT = (int)mp_front_right;
+   MP_BACK_LEFT = (int)mp_pback_left;
+   MP_BACK_RIGHT = (int)mp_back_right;
+
 
    /** Note that motor_force_to_pwm returns a value between -400 and 400, and the factors are such that the sum of
     *  each factor for every motor adds up (absolutely) to 1.0. Physics son! 
@@ -273,7 +281,7 @@ void calculate_pid()
    
    // write the motor settings
    int i;
-   for ( i = 0; i < 5; i++ )
+   for ( i = 0; i < 8; i++ )
    {
       set_motor_duty_cycle(i, motor_duty_cycle[i]);  
    }  
